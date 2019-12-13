@@ -91,20 +91,34 @@ class YoutubeClient:
         return ids
 
     def get_videos(self, query, get_stats=True):
-       """
-       Query the API for details on videos, by id
-       :param query: a comma seperated list of video ids
-       :param get_stats: boolean: Whether to query view count etc at extra cost
-       :return: a list of Video objects
-       """
+        """
+        Query the API for details on videos, by id
+        :param query: a comma separated list of video ids
+        :param get_stats: boolean: Whether to query view count (at extra cost)
+        :return: a list of Video objects
+        """
+        videos = []
+        request_part = 'snippet'
+        if get_stats:
+            request_part += ',statistics'
+        request = self.client.videos().list(
+            part=request_part,
+            id=query
+        )
+        response = request.execute()
+        for item in response['items']:
+            videos.append(Video(item))
+        return videos
+
 
 class Video:
 
-    def __init__(self, detail, statistics):
-        try:
-            self.id = detail['id']['videoId']
-        except TypeError as e:
-            self.id = detail['id']
+    def __init__(self, detail):
+        """
+        :param detail: Video item returned from API
+        """
+
+        self.id = detail['id']
         snippet = detail['snippet']
         self.channel_id = snippet['channelId']
         self.channel_title = snippet['channelTitle']
@@ -112,15 +126,28 @@ class Video:
         self.published_at = snippet['publishedAt']
         self.thumbnail = snippet['thumbnails']['high']['url']
         self.description = snippet['description']
+        self.tags = snippet['tags']
+
+        # Init stats attributes in case these are included in detail
+        self.dislikes = None
+        self.views = None
+        self.likes = None
+        self.comment_count = None
+        self.favourites = None
 
         # find statistics
-        r_stats = statistics['statistics']
-        self.dislikes = r_stats['dislikeCount']
-        self.views = r_stats['viewCount']
-        self.likes = r_stats['likeCount']
-        self.comment_count = r_stats['commentCount']
-        self.favourites = r_stats['favoriteCount']
+        try:
+            r_stats = detail['statistics']
+            self.dislikes = r_stats['dislikeCount']
+            self.views = r_stats['viewCount']
+            self.likes = r_stats['likeCount']
+            self.comment_count = r_stats['commentCount']
+            self.favourites = r_stats['favoriteCount']
+        except KeyError:
+            # No statistics in record
+            pass
 
+        # Define dictionary for printing to CSV
         self.print_headers = [
             'id', 'title', 'description', 'published_at',
             'channel_id',
@@ -150,9 +177,6 @@ def assemble_query(id_list, length=50):
     for i in range(chunks):
         final_list.append(",".join(id_list[i*length:(i+1)*length]))
     return final_list
-
-
-
 
 
 def main():

@@ -8,7 +8,8 @@ class TestStringMethods(unittest.TestCase):
     def setUp(self):
         self.test_videos = [
             {'id':'XCspzg9-bAg',
-            'title': "Batroll'd"},
+            'title': "Batroll'd",
+            'channelId': "UCoQlkuHszaZqv4CGwPYGFvg"},
             {'id': 'WqV22NbR5Wc',
              'title': 'DOUBLE KING'},
             {'id': 'w_MSFkZHNi4',
@@ -32,8 +33,8 @@ class TestStringMethods(unittest.TestCase):
 
     def test_get_videos_by_id(self):
         test_ids = [v['id'] for v in self.test_videos]
-        query = main.assemble_query(test_ids)
-        videos = self.client.get_videos(v_ids=query)
+        query = main.assemble_query(test_ids)[0]
+        videos = self.client.get_videos(query=query)
 
         # Check all videos returned
         self.assertEqual(len(videos), len(test_ids))
