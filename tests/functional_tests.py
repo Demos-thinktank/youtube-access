@@ -28,14 +28,16 @@ class TestStringMethods(unittest.TestCase):
         # Check IDs are of the right length, and the list isn't empty
         self.assertEqual(len(ids[0]), expected_id_length)
 
-        # Check the right number of IDs are returned
+        # Check the right number of IDs are returned, and we're paginating
         self.assertEqual(len(ids), 10)
 
     def test_get_videos_by_id(self):
-        ids = [v['id'] for v in self.test_videos]
-        query = main.assemble_query(ids)
-        self.fail("Finish this test")
+        test_ids = [v['id'] for v in self.test_videos]
+        query = main.assemble_query(test_ids)
+        videos = self.client.get_videos(v_ids=query)
 
+        # Check all videos returned
+        self.assertEqual(len(videos), len(test_ids))
 
 
 if __name__ == '__main__':
