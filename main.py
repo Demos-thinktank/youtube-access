@@ -126,7 +126,7 @@ class Video:
         """
         :param detail: Video item returned from API
         """
-
+        self.object_type = "video"
         self.id = detail['id']
         snippet = detail['snippet']
         self.channel_id = snippet['channelId']
@@ -157,15 +157,28 @@ class Video:
             pass
 
         # Define dictionary for printing to CSV
-        self.print_headers = [
-            'id', 'title', 'description', 'published_at',
-            'channel_id',
+        self.print_header = [
+            'id', 'title', 'description', 'published_at', 'channel_id',
             'dislikes', 'views', 'likes', 'comment_count', 'favourites',
             'thumbnail'
         ]
         self.print_dict = {}
-        for h in self.print_headers:
+        for h in self.print_header:
             self.print_dict[h] = self.__getattribute__(h)
+
+
+def write_objects_to_csv(objects, out_path):
+    """
+    Write objects (channels, videos, comments etc) to a csv file
+    """
+    # Append to exiting file if it's there - else write headers
+    if not os.path.exists(out_path):
+        with open(out_path, 'w') as out_file:
+            writer = csv.DictWriter(out_file, objects[0].print_header)
+            writer.writeheader()
+    with open(out_path, 'a', encoding='utf-8-sig') as out_file:
+        writer = csv.DictWriter(out_file, objects[0].print_header)
+        writer.writerows([o.print_dict for o in objects])
 
 
 def assemble_query(id_list, length=50):

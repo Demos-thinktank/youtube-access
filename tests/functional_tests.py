@@ -1,6 +1,10 @@
 import unittest
 import main
+import os
+import csv
+
 from auth import auth
+from tests.data.example_video_details import example_response
 
 
 class TestStringMethods(unittest.TestCase):
@@ -15,6 +19,13 @@ class TestStringMethods(unittest.TestCase):
             {'id': 'w_MSFkZHNi4',
             'title': 'DOUBLE KING'}]
         self.client = main.YoutubeClient(credentials=auth.credentials)
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        self.data_dir = os.path.join(test_dir, 'data')
+        self.out_csv = os.path.join(self.data_dir, 'test-out.csv')
+
+    def tearDown(self):
+        if os.path.exists(self.out_csv):
+            os.remove(self.out_csv)
 
     def test_search_for_keywords(self):
         """
@@ -46,7 +57,18 @@ class TestStringMethods(unittest.TestCase):
             observed = v.title
             self.assertEquals(observed,expected)
 
+    def test_video_written_to_csv(self):
+        self.assertFalse(os.path.exists(self.out_csv))
+        videos = [main.Video(v) for v in example_response['items']]
+        main.write_objects_to_csv(objects=videos,
+                                  out_path=self.out_csv)
+        self.assertTrue(os.path.exists(self.out_csv))
 
+        # Check all videos written
+        with open(self.out_csv, 'r') as object_file:
+            reader = csv.DictReader(object_file)
+            lines = [l for l in reader]
+            self.assertEquals(len(lines), 2)
 
 
 if __name__ == '__main__':
