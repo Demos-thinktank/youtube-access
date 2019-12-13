@@ -62,7 +62,7 @@ class YoutubeClient:
 
         request = self.client.search().list(
             part='id',
-            #publishedAfter=since,
+            publishedAfter=self.format_date(since),
             maxResults=per_page,
             q=query,
             order=order
@@ -109,6 +109,15 @@ class YoutubeClient:
         for item in response['items']:
             videos.append(Video(item))
         return videos
+
+
+    def format_date(self, date, from_format='%d/%m/%Y'):
+        """
+        Convert human readable date into RFC3339 for the publishedAt attribute
+        """
+        to_format = "%Y-%m-%dT00:00:00z"
+        published_date = time.strptime(date, from_format)
+        return time.strftime(to_format, published_date)
 
 
 class Video:
@@ -177,19 +186,6 @@ def assemble_query(id_list, length=50):
     for i in range(chunks):
         final_list.append(",".join(id_list[i*length:(i+1)*length]))
     return final_list
-
-
-def main():
-    # disable oauthlib's https verification when running locally.
-    # *do not* leave this option enabled in production.
-    os.environ["oauthlib_insecure_transport"] = "1"
-
-    api_service_name = "youtube"
-    api_version = "v3"
-    DEVELOPER_KEY = auth.credentials['api_key']
-
-    youtube = googleapiclient.discovery.build(
-        api_service_name, api_version, developerKey = DEVELOPER_KEY)
 
 
 if __name__ == "__main__":
