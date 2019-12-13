@@ -11,9 +11,9 @@ class TestStringMethods(unittest.TestCase):
             'title': "Batroll'd",
             'channelId': "UCoQlkuHszaZqv4CGwPYGFvg"},
             {'id': 'WqV22NbR5Wc',
-             'title': 'DOUBLE KING'},
+             'title': 'Rainbow Bunchie 10 hours'},
             {'id': 'w_MSFkZHNi4',
-            'title': 'Rainbow Bunchie 10 hours'}]
+            'title': 'DOUBLE KING'}]
         self.client = main.YoutubeClient(credentials=auth.credentials)
 
     def test_search_for_keywords(self):
@@ -38,6 +38,15 @@ class TestStringMethods(unittest.TestCase):
 
         # Check all videos returned
         self.assertEqual(len(videos), len(test_ids))
+
+        # Check titles
+        for v in videos:
+            expected = [t['title'] for t in self.test_videos
+                        if t['id'] == v.id][0]
+            observed = v.title
+            self.assertEquals(observed,expected)
+
+
 
 
 if __name__ == '__main__':
