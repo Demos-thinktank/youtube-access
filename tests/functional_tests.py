@@ -20,7 +20,6 @@ class TestStringMethods(unittest.TestCase):
         We're going to do multiple tests here to avoid calling this endpoint
         too often
         """
-        ids = []
         ids = self.client.search_by_keyword("crime owl", 10, per_page=5,
                                             since='01/01/2018')
         expected_id_length = 11

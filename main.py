@@ -90,6 +90,13 @@ class YoutubeClient:
                     break
         return ids
 
+    def get_videos(self, query, get_stats=True):
+       """
+       Query the API for details on videos, by id
+       :param query: a comma seperated list of video ids
+       :param get_stats: boolean: Whether to query view count etc at extra cost
+       :return: a list of Video objects
+       """
 
 class Video:
 
