@@ -70,6 +70,22 @@ class TestStringMethods(unittest.TestCase):
             lines = [l for l in reader]
             self.assertEquals(len(lines), 2)
 
+    def test_can_get_and_write_comments(self):
+        comments = self.client.get_comments('XCspzg9-bAg',
+                                            limit=10, per_page=5)
+        self.assertEquals(len(comments), 10)
+
+        self.assertFalse(os.path.exists(self.out_csv))
+        main.write_objects_to_csv(objects=comments,
+                                  out_path=self.out_csv)
+        self.assertTrue(os.path.exists(self.out_csv))
+
+        # Check all comments written
+        with open(self.out_csv, 'r') as object_file:
+            reader = csv.DictReader(object_file)
+            lines = [l for l in reader]
+            self.assertEquals(len(lines), 10)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -38,7 +38,7 @@ class YoutubeClient:
         self.client = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=developer_key)
 
-    def search_by_keyword(self, query, limit,
+    def search_by_keyword(self, query, limit=math.inf,
                           since='01/01/2019',
                           per_page='50',
                           order='viewCount'):
@@ -70,7 +70,7 @@ class YoutubeClient:
         response = request.execute()
         ids.extend([i['id']['videoId'] for i in response['items']])
 
-        if limit:
+        if limit > 0:
             while len(ids) < limit:
                 try:
                     next_page_token = response['nextPageToken']
@@ -95,7 +95,7 @@ class YoutubeClient:
         Query the API for details on videos, by id
         :param query: a comma separated list of video ids
         :param get_stats: boolean: Whether to query view count (at extra cost)
-        :return: a list of Video objects
+        :return: A list of Video objects
         """
         videos = []
         request_part = 'snippet'
@@ -110,7 +110,6 @@ class YoutubeClient:
             videos.append(Video(item))
         return videos
 
-
     def format_date(self, date, from_format='%d/%m/%Y'):
         """
         Convert human readable date into RFC3339 for the publishedAt attribute
@@ -119,6 +118,47 @@ class YoutubeClient:
         published_date = time.strptime(date, from_format)
         return time.strftime(to_format, published_date)
 
+    def get_comments(self, from_video_id, limit=math.inf, per_page=50):
+        """
+        Get top level comments left on a single video
+        :return: A list of Comment objects
+        """
+        comments = []
+        request = self.client.commentThreads().list(
+            part="snippet",
+            maxResults=per_page,
+            order="time",
+            videoId=from_video_id
+        )
+        response = request.execute()
+        comments.extend([Comment(i['snippet']['topLevelComment'])
+                         for i in response['items']])
+
+        if limit > 0:
+            while len(comments) < limit:
+                try:
+                    next_page_token = response['nextPageToken']
+                    try:
+                        request = self.client.commentThreads().list(
+                            pageToken=next_page_token,
+                            part='snippet',
+                            maxResults=per_page,
+                            order="time",
+                            videoId=from_video_id
+                        )
+                        response = request.execute()
+                        cs = [Comment(i['snippet']['topLevelComment'])
+                              for i in response['items']]
+                        comments.extend(cs)
+                    except HttpError as e:
+                        print("403 on video - likely due to be rate limits.")
+                        raise e
+                except KeyError:
+                    print('Found all comments for video {}'
+                          .format(from_video_id))
+                    break
+        return comments
+
 
 class Video:
 
@@ -126,7 +166,6 @@ class Video:
         """
         :param detail: Video item returned from API
         """
-        self.object_type = "video"
         self.id = detail['id']
         snippet = detail['snippet']
         self.channel_id = snippet['channelId']
@@ -166,6 +205,25 @@ class Video:
         for h in self.print_header:
             self.print_dict[h] = self.__getattribute__(h)
 
+
+class Comment:
+
+    def __init__(self, details):
+        snippet = details['snippet']
+        self.author_channel_url = snippet['authorChannelUrl']
+        self.published_at = snippet['publishedAt']
+        self.text = snippet['textOriginal']
+        self.author_name = snippet['authorDisplayName']
+        self.like_count = snippet['likeCount']
+        self.id = details['id']
+        self.video_id = snippet['videoId']
+        self.print_header = [
+            'id', 'author_name', 'text', 'like_count', 'published_at',
+            'video_id', 'author_channel_url'
+        ]
+        self.print_dict = {}
+        for h in self.print_header:
+            self.print_dict[h] = self.__getattribute__(h)
 
 def write_objects_to_csv(objects, out_path):
     """
