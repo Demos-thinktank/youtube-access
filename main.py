@@ -3,7 +3,6 @@
 import os
 import time
 import csv
-from auth import auth
 import math
 
 import googleapiclient.discovery
@@ -65,10 +64,15 @@ class YoutubeClient:
             publishedAfter=self.format_date(since),
             maxResults=per_page,
             q=query,
-            order=order
+            order=order,
+            type='video'
         )
         response = request.execute()
-        ids.extend([i['id']['videoId'] for i in response['items']])
+        for r in response['items']:
+            try:
+                ids.append(r['id']['videoId'])
+            except:
+                pass
 
         if limit > 0:
             while len(ids) < limit:
@@ -174,9 +178,9 @@ class Video:
         self.published_at = snippet['publishedAt']
         self.thumbnail = snippet['thumbnails']['high']['url']
         self.description = snippet['description']
-        self.tags = snippet['tags']
 
         # Init stats attributes in case these are included in detail
+        self.tags = None
         self.dislikes = None
         self.views = None
         self.likes = None
@@ -186,6 +190,7 @@ class Video:
         # find statistics
         try:
             r_stats = detail['statistics']
+            self.tags = snippet['tags']
             self.dislikes = r_stats['dislikeCount']
             self.views = r_stats['viewCount']
             self.likes = r_stats['likeCount']
