@@ -37,37 +37,11 @@ class YoutubeClient:
         self.client = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=developer_key)
 
-    def search_by_keyword(self, query, limit=math.inf,
-                          since='01/01/2019',
-                          per_page='50',
-                          order='viewCount'):
-        """
-        Return video ids related to a search term. Will scroll through pages
-        until it has reached limit ids.
-
-        Relevant API docs
-        https://developers.google.com/youtube/v3/docs/search/list
-
-        :param client: Youtube client
-        :param query: Keywords to search on
-        :param limit: Max number of ids to look for
-        :param since: Return videos published after this date
-        :param per_page: Number of results to request per page (50 YT's limit)
-        :param order: Order in which to return IDs. viewCount sorts by views,
-        descending
-        :return: A list of video ids related to the query
-        """
+    def _search(self, request):
         ids = []
 
-        request = self.client.search().list(
-            part='id',
-            publishedAfter=self.format_date(since),
-            maxResults=per_page,
-            q=query,
-            order=order,
-            type='video'
-        )
         response = request.execute()
+
         for r in response['items']:
             try:
                 ids.append(r['id']['videoId'])
@@ -93,6 +67,60 @@ class YoutubeClient:
                     print('Found all videos for search term {}'.format(query))
                     break
         return ids
+
+
+    # It looks like this search is limited to 500 videos max (even with following next page token). See https://developers.google.com/youtube/v3/docs/search/list#channelId
+    def search_by_channel(self, 
+                            channel_id,
+                            limit=math.inf,
+                            since='01/01/2019',
+                            per_page='50',
+                            order='viewCount'):
+        
+        request = self.client.search().list(
+            part='id',
+            publishedAfter=self.format_date(since),
+            maxResults=per_page,
+            channelId=channel_id,
+            order=order,
+            type='video'
+        )
+
+        return self._search(request)
+
+
+    def search_by_keyword(self, query, limit=math.inf,
+                          since='01/01/2019',
+                          per_page='50',
+                          order='viewCount'):
+        """
+        Return video ids related to a search term. Will scroll through pages
+        until it has reached limit ids.
+
+        Relevant API docs
+        https://developers.google.com/youtube/v3/docs/search/list
+
+        :param client: Youtube client
+        :param query: Keywords to search on
+        :param limit: Max number of ids to look for
+        :param since: Return videos published after this date
+        :param per_page: Number of results to request per page (50 YT's limit)
+        :param order: Order in which to return IDs. viewCount sorts by views,
+        descending
+        :return: A list of video ids related to the query
+        """
+
+        request = self.client.search().list(
+            part='id',
+            publishedAfter=self.format_date(since),
+            maxResults=per_page,
+            q=query,
+            order=order,
+            type='video'
+        )
+        
+        return self._search(request)
+        
 
     def get_videos(self, query, get_stats=True):
         """
