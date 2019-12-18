@@ -244,19 +244,30 @@ def write_objects_to_csv(objects, out_path):
         writer.writerows([o.print_dict for o in objects])
 
 
-def assemble_query(id_list, length=50):
+def assemble_query(id_list, length=50, existing=None):
     """
     In order to save on API limits, YT will allow you to pass 50 ids in the
     'query' parameter. This f assembles those lists into a single
     comma seperated string.
+
+    Use the optional 'existing' variable to specify a csv file of previously
+    collected records, and remove ids belonging to these from the query to
+    prevent unnecessary recollection.
 
     >>> assemble_query(['a','b','c','d'], length=3)
     ['a,b,c', 'd']
 
     :param id_list: A list of strings to be queried (e.g. video ids)
     :param length: Max length of lists to be returned
+    :param exising: Path to a file which contains already collected records
     :return: A list of strings
     """
+    if existing:
+        with open(existing, 'r') as e_csv:
+            reader = csv.DictReader(e_csv)
+            existing_ids = set(l['id'] for l in reader)
+        id_list = list(set(id_list) - existing_ids)
+
     final_list = []
     chunks = math.floor(len(id_list) / length) + 1
     for i in range(chunks):

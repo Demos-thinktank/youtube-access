@@ -86,7 +86,6 @@ class TestStringMethods(unittest.TestCase):
             lines = [l for l in reader]
             self.assertEquals(len(lines), 10)
 
-
     def test_previously_colleted_videos_not_requested_again(self):
         # existing_output contains the details of the frist video
         # in our test list
@@ -94,8 +93,9 @@ class TestStringMethods(unittest.TestCase):
                                       "example_existing_output.csv")
         existing_video_id = self.test_ids[0]
         query = main.assemble_query(self.test_ids, existing=existing_output)
-        self.assertNotIn(existing_video_id, query)
-        self.assertIn(self.test_ids[2], query)
+        self.assertNotIn(existing_video_id, query[0])
+        self.assertIn(self.test_ids[2], query[0])
+
 
 if __name__ == '__main__':
     unittest.main()
