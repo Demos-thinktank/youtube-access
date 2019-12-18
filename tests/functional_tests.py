@@ -18,6 +18,7 @@ class TestStringMethods(unittest.TestCase):
              'title': 'Rainbow Bunchie 10 hours'},
             {'id': 'w_MSFkZHNi4',
             'title': 'DOUBLE KING'}]
+        self.test_ids = [v['id'] for v in self.test_videos]
         self.client = main.YoutubeClient(credentials=auth.credentials)
         test_dir = os.path.dirname(os.path.realpath(__file__))
         self.data_dir = os.path.join(test_dir, 'data')
@@ -43,12 +44,11 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(len(ids), 10)
 
     def test_get_videos_by_id(self):
-        test_ids = [v['id'] for v in self.test_videos]
-        query = main.assemble_query(test_ids)[0]
+        query = main.assemble_query(self.test_ids)[0]
         videos = self.client.get_videos(query=query)
 
         # Check all videos returned
-        self.assertEqual(len(videos), len(test_ids))
+        self.assertEqual(len(videos), len(self.test_ids))
 
         # Check titles
         for v in videos:
@@ -86,6 +86,16 @@ class TestStringMethods(unittest.TestCase):
             lines = [l for l in reader]
             self.assertEquals(len(lines), 10)
 
+
+    def test_previously_colleted_videos_not_requested_again(self):
+        # existing_output contains the details of the frist video
+        # in our test list
+        existing_output = os.path.join(self.data_dir,
+                                      "example_existing_output.csv")
+        existing_video_id = self.test_ids[0]
+        query = main.assemble_query(self.test_ids, existing=existing_output)
+        self.assertNotIn(existing_video_id, query)
+        self.assertIn(self.test_ids[2], query)
 
 if __name__ == '__main__':
     unittest.main()
