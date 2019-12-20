@@ -109,6 +109,11 @@ class TestStringMethods(unittest.TestCase):
         for line in lines:
             self.assertEqual(line["Extra field"], "It's this")
 
+    def test_existing_output_works_when_file_not_there(self):
+        nonexisting_output = os.path.join(self.data_dir,
+                                          "brinetackle.yup")
+        query = main.assemble_query(self.test_ids, existing=nonexisting_output)
+
 
 if __name__ == '__main__':
     unittest.main()
