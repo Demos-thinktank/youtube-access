@@ -270,10 +270,14 @@ def assemble_query(id_list, length=50, existing=None):
     :return: A list of strings
     """
     if existing:
-        with open(existing, 'r') as e_csv:
-            reader = csv.DictReader(e_csv)
-            existing_ids = set(l['id'] for l in reader)
-        id_list = list(set(id_list) - existing_ids)
+        # Read CSVs if file exists, else do nothing
+        try:
+            with open(existing, 'r') as e_csv:
+                reader = csv.DictReader(e_csv)
+                existing_ids = set(l['id'] for l in reader)
+                id_list = list(set(id_list) - existing_ids)
+        except FileNotFoundError:
+            pass
 
     final_list = []
     chunks = math.floor(len(id_list) / length) + 1
