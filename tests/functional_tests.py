@@ -86,8 +86,8 @@ class TestStringMethods(unittest.TestCase):
             lines = [l for l in reader]
             self.assertEquals(len(lines), 10)
 
-    def test_previously_colleted_videos_not_requested_again(self):
-        # existing_output contains the details of the frist video
+    def test_previously_collected_videos_not_requested_again(self):
+        # 'existing_output' contains the details of the first video
         # in our test list
         existing_output = os.path.join(self.data_dir,
                                       "example_existing_output.csv")
@@ -108,6 +108,7 @@ class TestStringMethods(unittest.TestCase):
 
         for line in lines:
             self.assertEqual(line["Extra field"], "It's this")
+
 
 if __name__ == '__main__':
     unittest.main()

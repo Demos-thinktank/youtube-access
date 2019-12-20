@@ -254,7 +254,7 @@ def write_objects_to_csv(objects, out_path, extra_dict=None):
 def assemble_query(id_list, length=50, existing=None):
     """
     In order to save on API limits, YT will allow you to pass 50 ids in the
-    'query' parameter. This f assembles those lists into a single
+    'query' parameter. This fn assembles those lists into a single
     comma seperated string.
 
     Use the optional 'existing' variable to specify a csv file of previously
