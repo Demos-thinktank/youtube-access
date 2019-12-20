@@ -96,6 +96,18 @@ class TestStringMethods(unittest.TestCase):
         self.assertNotIn(existing_video_id, query[0])
         self.assertIn(self.test_ids[2], query[0])
 
+    def test_can_add_csv_fields(self):
+        extra_dict = {"Extra field": "It's this"}
+        videos = [main.Video(v) for v in example_response['items']]
+        main.write_objects_to_csv(videos,
+                                  out_path=self.out_csv,
+                                  extra_dict=extra_dict)
+        with open(self.out_csv, 'r') as object_file:
+            reader = csv.DictReader(object_file)
+            lines = [l for l in reader]
+
+        for line in lines:
+            self.assertEqual(line["Extra field"], "It's this")
 
 if __name__ == '__main__':
     unittest.main()

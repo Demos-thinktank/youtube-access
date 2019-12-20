@@ -230,18 +230,25 @@ class Comment:
         for h in self.print_header:
             self.print_dict[h] = self.__getattribute__(h)
 
-def write_objects_to_csv(objects, out_path):
+def write_objects_to_csv(objects, out_path, extra_dict=None):
     """
     Write objects (channels, videos, comments etc) to a csv file
     """
     # Append to exiting file if it's there - else write headers
+    header = objects[0].print_header
+    rows = [o.print_dict for o in objects]
+    if extra_dict:
+        header.extend(extra_dict.keys())
+        for r in rows:
+            r.update(extra_dict)
+
     if not os.path.exists(out_path):
         with open(out_path, 'w') as out_file:
-            writer = csv.DictWriter(out_file, objects[0].print_header)
+            writer = csv.DictWriter(out_file, header)
             writer.writeheader()
     with open(out_path, 'a', encoding='utf-8-sig') as out_file:
-        writer = csv.DictWriter(out_file, objects[0].print_header)
-        writer.writerows([o.print_dict for o in objects])
+        writer = csv.DictWriter(out_file, header)
+        writer.writerows(rows)
 
 
 def assemble_query(id_list, length=50, existing=None):
