@@ -13,6 +13,6 @@ To use this script you will need to create a project with access to the YouTube 
 
 That's it - it should run. 
 
-Uniitests (all passing, I hope) are in tests/
+Unit tests (all passing, I hope) are in tests/
 
 There are many TODOs; the most urgent is to handle 403 reponses due to rate limiting better. 
