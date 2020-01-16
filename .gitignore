@@ -6,3 +6,4 @@ data/
 venv/
 .DS_Store
 *.pyc
+get_yt_data.py

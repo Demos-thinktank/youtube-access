@@ -16,7 +16,7 @@ video_ids = client.search_by_keyword("teach yourself to",
                                       order='viewCount')
 
 # Get video details, check for 403s.
-video_queries = assemble_query(video_ids)
+video_queries = assemble_query(video_ids, existing=videos_out)
 videos = []
 for q in video_queries:
     try:
