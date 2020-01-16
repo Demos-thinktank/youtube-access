@@ -37,6 +37,9 @@ def parse_args():
     parser.add_argument("--limit", default=math.inf, type=int,
         help="limit number of pages of videos returned from each search")
 
+    parser.add_argument("--limit-comments", default=math.inf, type=int,
+        help="limit the number of pages of comments return from each comment")
+    
     return parser.parse_args()
 
 def valid_path_arg(path):
@@ -57,10 +60,10 @@ def get_videos_from_keywords(args):
     for video in client.search_by_keyword(keywords, limit=args.limit, order=args.order, since=args.since):
         yield video
 
-def comments_from_videos(videos):
+def comments_from_videos(videos, args):
     for video in videos:
         try:
-            for comment in client.get_comments(video):
+            for comment in client.get_comments(video, limit=args.limit_comments):
                 yield comment
         except HttpError as e:
             print(e)
