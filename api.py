@@ -37,7 +37,7 @@ class YoutubeClient:
         self.client = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=developer_key)
 
-    def _search(self, request):
+    def _search(self, request, limit=math.inf):
         ids = []
 
         response = request.execute()
@@ -86,7 +86,7 @@ class YoutubeClient:
             type='video'
         )
 
-        return self._search(request)
+        return self._search(request, limit=limit, )
 
 
     def search_by_keyword(self, query, limit=math.inf,
@@ -119,7 +119,7 @@ class YoutubeClient:
             type='video'
         )
         
-        return self._search(request)
+        return self._search(request, limit=limit)
         
 
     def get_videos(self, query, get_stats=True):

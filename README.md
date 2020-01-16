@@ -10,6 +10,8 @@ To use this script you will need to create a project with access to the YouTube 
  - Click 'Enable APIs and services' and select YouTube Data API v3
  - On the 'Credentials' page for your new project, create an API key. You don't need to mke an OAuth Client ID.
  - Open ./auth/auth-template.py in a text editor, fill in your key values, and save the file as 'auth.py'
+ - Install Google API python client: 
+ 	`pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib`
 
 That's it - it should run. 
 
