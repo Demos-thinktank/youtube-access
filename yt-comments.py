@@ -52,6 +52,8 @@ def read_file_args(path):
 
 def get_videos_from_channels(args):
     for channel in read_file_args(args.search_channels):
+        if "/" in channel:
+            channel = channel.rsplit("/", 1)[1]
         for video in client.search_by_channel(channel, since=args.since, limit=args.limit, order=args.order):
             yield video
 
