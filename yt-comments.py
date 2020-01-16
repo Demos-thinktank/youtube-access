@@ -39,7 +39,7 @@ def parse_args():
 
     parser.add_argument("--limit-comments", default=math.inf, type=int,
         help="limit the number of pages of comments return from each comment")
-    
+
     return parser.parse_args()
 
 def valid_path_arg(path):
@@ -85,14 +85,14 @@ if __name__ == "__main__":
         print("> Search channels")
         video_ids += get_videos_from_channels(args)
 
-    print("Number of vids: ", len(video_ids))
-
     if args.search_keywords:
         print("> Searching keywords")
         video_ids += get_videos_from_keywords(args)
 
+    print("> Number of videos found:", len(video_ids))
+
     print("> Retrieving comments")
-    comments = comments_from_videos(video_ids)
+    comments = comments_from_videos(video_ids, args)
 
     print("> Writing comments")
     write_objects_to_csv(list(comments), args.comments_output)
