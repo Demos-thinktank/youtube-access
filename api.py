@@ -191,6 +191,42 @@ class YoutubeClient:
                     break
         return comments
 
+    def get_user_channels(self, username, limit=math.inf, per_page=50):
+
+        request = self.client.channels().list(
+            part="id,statistics",
+            forUsername=username,
+            maxResults=per_page
+        )
+
+        response = request.execute()
+
+        channels = []
+        channels += [Channel(item) for item in response['items']]
+
+        if limit > 0:
+            while len(channels) < limit:
+                try:
+                    next_page_token = response['nextPageToken']
+                    try:
+                        request = self.client.channels().list(
+                            part="id,statistics",
+                            forUsername=username,
+                            maxResults=per_page,
+                            pageToken=next_page_token
+                        )
+                        response = request.execute()
+                        channels += [Channel(item) for item in response['items']]
+                    except HttpError as e:
+                        print("403 on user - likely due to be rate limits?")
+                        raise e
+                except KeyError:
+                    print('Found all channels for user {}'
+                          .format(username))
+                    break
+
+        return channels
+
 
 class Video:
 
@@ -238,6 +274,25 @@ class Video:
         for h in self.print_header:
             self.print_dict[h] = self.__getattribute__(h)
 
+class Channel:
+
+    def __init__(self, detail):
+        self.id = detail['id']
+
+        # find statistics
+        try:
+            r_stats = detail['statistics']
+            self.views = r_stats['viewCount']
+            self.comment_count = r_stats['commentCount']
+            self.video_count = r_stats['videoCount']
+            self.subscriber_count = r_stats['subscriberCount']
+            self.hidden_subscriber_count = r_stats['hiddenSubscriberCount']
+        except KeyError:
+            # No statistics in record
+            pass
+
+    def __str__(self):
+        return "Channel(id=" + self.id + ")"
 
 class Comment:
 

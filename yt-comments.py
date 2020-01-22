@@ -13,8 +13,11 @@ def parse_args():
     '''Set up command line argument parsing'''
     parser = argparse.ArgumentParser()
 
+    parser.add_argument("-u", "--convert-users", type=valid_path_arg,
+        help="path to file of user link/id per line")
+
     parser.add_argument("-c", "--search-channels", type=valid_path_arg,
-        help="path to file of channel ID per line")
+        help="path to file of channel link/id per line")
 
     parser.add_argument("-k", "--search-keywords", type=valid_path_arg,
     	help="path to file of keyword per line")
@@ -50,10 +53,37 @@ def read_file_args(path):
         for line in argfile:
             yield line.strip()
 
+def id_from_link_or_id(link_or_id):
+    if link_or_id.endswith("/"):
+        link_or_id = link_or_id[:-1]
+    if "/" in link_or_id:
+        link_or_id = link_or_id.rsplit("/", 1)[1]
+    return link_or_id
+
+def is_channel(link):
+    return "/channel" in link
+
+def is_user(link):
+    return "/user" in link
+
+def is_link(link):
+    return "/" in link
+
+def convert_users_to_channels(args):
+    with args.convert_users.with_suffix(".converted.txt").open("w") as output:
+        for link_or_id in read_file_args(args.convert_users):
+            if not is_link(link_or_id) or is_user(link_or_id):
+                user_id = id_from_link_or_id(link_or_id)
+                channels = client.get_user_channels(user_id, limit=args.limit)
+                for channel in channels:
+                    output.write("https://www.youtube.com/channel/" + channel.id + "\n")
+            else:
+                print(link_or_id + " is not user, copying without converting.")
+                output.write(link_or_id + "\n")
+
 def get_videos_from_channels(args):
     for channel in read_file_args(args.search_channels):
-        if "/" in channel:
-            channel = channel.rsplit("/", 1)[1]
+        channel = id_from_link_or_id(channel)
         for video in client.search_by_channel(channel, since=args.since, limit=args.limit, order=args.order):
             yield video
 
@@ -83,6 +113,10 @@ if __name__ == "__main__":
         print("> Reading video IDs")
         video_ids += read_file_args(args.search_videos)
 
+    if args.convert_users:
+        print("> Converting users to channels")
+        convert_users_to_channels(args)
+
     if args.search_channels:
         print("> Search channels")
         video_ids += get_videos_from_channels(args)
@@ -91,27 +125,29 @@ if __name__ == "__main__":
         print("> Searching keywords")
         video_ids += get_videos_from_keywords(args)
 
-    print("> Number of videos found:", len(video_ids))
+    if (args.search_channels or args.search_keywords):
 
-    print("> Retrieving comments")
-    comments = comments_from_videos(video_ids, args)
+        print("> Number of videos found:", len(video_ids))
 
-    print("> Writing comments")
-    write_objects_to_csv(list(comments), args.comments_output)
+        print("> Retrieving comments")
+        comments = comments_from_videos(video_ids, args)
 
-    print("> Retrieving video meta")
-    video_queries = assemble_query(video_ids, existing=args.video_output)
-    videos = []
-    for q in video_queries:
-        try:
-            videos += client.get_videos(q)
-        except HttpError as e:
-            print(e)
+        print("> Writing comments")
+        write_objects_to_csv(list(comments), args.comments_output)
 
-    print("> Writing videos")
-    write_objects_to_csv(list(videos), args.video_output)
+        print("> Retrieving video meta")
+        video_queries = assemble_query(video_ids, existing=args.video_output)
+        videos = []
+        for q in video_queries:
+            try:
+                videos += client.get_videos(q)
+            except HttpError as e:
+                print(e)
 
-    print("> Done")
+        print("> Writing videos")
+        write_objects_to_csv(list(videos), args.video_output)
+
+        print("> Done")
 
 
 
