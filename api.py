@@ -37,7 +37,7 @@ class YoutubeClient:
         self.client = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=developer_key)
 
-    def _search(self, request, limit=math.inf):
+    def _search(self, request, limit=math.inf, query_name=None):
         ids = []
 
         response = request.execute()
@@ -64,7 +64,7 @@ class YoutubeClient:
                         print("403 on video - likely due to be rate limits.")
                         raise e
                 except KeyError:
-                    print('Found all videos for search term {}'.format(query))
+                    print('Found all videos for search {}'.format(query_name if query_name else request.uri))
                     break
         return ids
 
@@ -86,7 +86,7 @@ class YoutubeClient:
             type='video'
         )
 
-        return self._search(request, limit=limit, )
+        return self._search(request, limit=limit, query_name=channel_id)
 
 
     def search_by_keyword(self, query, limit=math.inf,
@@ -119,7 +119,7 @@ class YoutubeClient:
             type='video'
         )
         
-        return self._search(request, limit=limit)
+        return self._search(request, limit=limit, query_name=query)
         
 
     def get_videos(self, query, get_stats=True):
@@ -221,8 +221,7 @@ class YoutubeClient:
                         print("403 on user - likely due to be rate limits?")
                         raise e
                 except KeyError:
-                    print('Found all channels for user {}'
-                          .format(username))
+                    print('Found all channels for user {}'.format(username))
                     break
 
         return channels
