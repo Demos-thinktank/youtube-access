@@ -75,6 +75,8 @@ def convert_users_to_channels(args):
             if not is_link(link_or_id) or is_user(link_or_id):
                 user_id = id_from_link_or_id(link_or_id)
                 channels = client.get_user_channels(user_id, limit=args.limit)
+                if not channels:
+                    print("Warning! " + user_id + "did not resolve to any channels.")
                 for channel in channels:
                     output.write("https://www.youtube.com/channel/" + channel.id + "\n")
             else:
