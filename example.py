@@ -1,4 +1,4 @@
-from main import *
+from api import *
 from auth import auth
 import os
 from googleapiclient.errors import HttpError
