@@ -3,6 +3,7 @@
 import os
 import time
 import csv
+import json
 import math
 
 import googleapiclient.discovery
@@ -16,15 +17,16 @@ class YoutubeClient:
     to request data from it.
     """
 
-    def __init__(self, credentials):
+    def __init__(self, credentials, rate_limit_retry=15):
         """
         :param credentials: A dictionary of credentials - must include:
             api_key
             client_id
             client_secret
+        :param rate_limit_retry: minutes to wait before retrying request when
+            rate limit has been exceeded.
         All of these can be found on your YouTube developer page
         """
-
 
         # disable oauthlib's https verification when running locally.
         # *do not* leave this option enabled in production.
@@ -36,11 +38,12 @@ class YoutubeClient:
 
         self.client = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=developer_key)
+        self.rate_limit_retry = rate_limit_retry
 
     def _search(self, request, limit=math.inf, query_name=None):
         ids = []
 
-        response = request.execute()
+        response = _execute_and_retry(request, self.rate_limit_retry)
 
         for r in response['items']:
             try:
@@ -52,31 +55,36 @@ class YoutubeClient:
             while len(ids) < limit:
                 try:
                     next_page_token = response['nextPageToken']
-                    try:
-                        request = self.client.search().list(
-                            part='id',
-                            pageToken=next_page_token
-                        )
-                        response = request.execute()
-                        found = [i['id']['videoId'] for i in response['items']]
-                        ids.extend(found)
-                    except HttpError as e:
-                        print("403 on video - likely due to be rate limits.")
-                        raise e
+                    request = self.client.search().list(
+                        part='id',
+                        pageToken=next_page_token
+                    )
+                    response = _execute_and_retry(request, self.rate_limit_retry)
+                    found = [i['id']['videoId'] for i in response['items']]
+                    ids.extend(found)
                 except KeyError:
                     print('Found all videos for search {}'.format(query_name if query_name else request.uri))
                     break
         return ids
 
+    def search_by_channel(self,
+                          channel_id,
+                          limit=math.inf,
+                          since='01/01/2019',
+                          per_page='50',
+                          order='viewCount'):
+        """
+        Note: It looks like this search is limited to 500 videos max (even with following next page token).
+         See https://developers.google.com/youtube/v3/docs/search/list#channelId
 
-    # It looks like this search is limited to 500 videos max (even with following next page token). See https://developers.google.com/youtube/v3/docs/search/list#channelId
-    def search_by_channel(self, 
-                            channel_id,
-                            limit=math.inf,
-                            since='01/01/2019',
-                            per_page='50',
-                            order='viewCount'):
-        
+        :param channel_id:
+        :param limit:
+        :param since:
+        :param per_page:
+        :param order:
+        :return:
+        """
+
         request = self.client.search().list(
             part='id',
             publishedAfter=self.format_date(since),
@@ -87,7 +95,6 @@ class YoutubeClient:
         )
 
         return self._search(request, limit=limit, query_name=channel_id)
-
 
     def search_by_keyword(self, query, limit=math.inf,
                           since='01/01/2019',
@@ -118,9 +125,8 @@ class YoutubeClient:
             order=order,
             type='video'
         )
-        
+
         return self._search(request, limit=limit, query_name=query)
-        
 
     def get_videos(self, query, get_stats=True):
         """
@@ -129,7 +135,6 @@ class YoutubeClient:
         :param get_stats: boolean: Whether to query view count (at extra cost)
         :return: A list of Video objects
         """
-        videos = []
         request_part = 'snippet'
         if get_stats:
             request_part += ',statistics'
@@ -137,10 +142,8 @@ class YoutubeClient:
             part=request_part,
             id=query
         )
-        response = request.execute()
-        for item in response['items']:
-            videos.append(Video(item))
-        return videos
+        response = _execute_and_retry(request, self.rate_limit_retry)
+        return [Video(item) for item in response['items']]
 
     def format_date(self, date, from_format='%d/%m/%Y'):
         """
@@ -162,7 +165,8 @@ class YoutubeClient:
             order="time",
             videoId=from_video_id
         )
-        response = request.execute()
+        response = _execute_and_retry(request, self.rate_limit_retry)
+
         comments.extend([Comment(i['snippet']['topLevelComment'])
                          for i in response['items']])
 
@@ -170,24 +174,18 @@ class YoutubeClient:
             while len(comments) < limit:
                 try:
                     next_page_token = response['nextPageToken']
-                    try:
-                        request = self.client.commentThreads().list(
-                            pageToken=next_page_token,
-                            part='snippet',
-                            maxResults=per_page,
-                            order="time",
-                            videoId=from_video_id
-                        )
-                        response = request.execute()
-                        cs = [Comment(i['snippet']['topLevelComment'])
-                              for i in response['items']]
-                        comments.extend(cs)
-                    except HttpError as e:
-                        print("403 on video - likely due to be rate limits.")
-                        raise e
+                    request = self.client.commentThreads().list(
+                        pageToken=next_page_token,
+                        part='snippet',
+                        maxResults=per_page,
+                        order="time",
+                        videoId=from_video_id
+                    )
+                    response = _execute_and_retry(request, self.rate_limit_retry)
+                    cs = [Comment(i['snippet']['topLevelComment']) for i in response['items']]
+                    comments.extend(cs)
                 except KeyError:
-                    print('Found all comments for video {}'
-                          .format(from_video_id))
+                    print(f'Found all comments for video {from_video_id}')
                     break
         return comments
 
@@ -198,8 +196,7 @@ class YoutubeClient:
             forUsername=username,
             maxResults=per_page
         )
-
-        response = request.execute()
+        response = _execute_and_retry(request, self.rate_limit_retry)
 
         channels = []
         channels += [Channel(item) for item in response['items']]
@@ -208,18 +205,14 @@ class YoutubeClient:
             while len(channels) < limit:
                 try:
                     next_page_token = response['nextPageToken']
-                    try:
-                        request = self.client.channels().list(
-                            part="id,statistics",
-                            forUsername=username,
-                            maxResults=per_page,
-                            pageToken=next_page_token
-                        )
-                        response = request.execute()
-                        channels += [Channel(item) for item in response['items']]
-                    except HttpError as e:
-                        print("403 on user - likely due to be rate limits?")
-                        raise e
+                    request = self.client.channels().list(
+                        part="id,statistics",
+                        forUsername=username,
+                        maxResults=per_page,
+                        pageToken=next_page_token
+                    )
+                    response = _execute_and_retry(request, self.rate_limit_retry)
+                    channels += [Channel(item) for item in response['items']]
                 except KeyError:
                     print('Found all channels for user {}'.format(username))
                     break
@@ -273,6 +266,7 @@ class Video:
         for h in self.print_header:
             self.print_dict[h] = self.__getattribute__(h)
 
+
 class Channel:
 
     def __init__(self, detail):
@@ -293,6 +287,7 @@ class Channel:
     def __str__(self):
         return "Channel(id=" + self.id + ")"
 
+
 class Comment:
 
     def __init__(self, details):
@@ -311,6 +306,7 @@ class Comment:
         self.print_dict = {}
         for h in self.print_header:
             self.print_dict[h] = self.__getattribute__(h)
+
 
 def write_objects_to_csv(objects, out_path, extra_dict=None):
     """
@@ -364,8 +360,40 @@ def assemble_query(id_list, length=50, existing=None):
     final_list = []
     chunks = math.floor(len(id_list) / length) + 1
     for i in range(chunks):
-        final_list.append(",".join(id_list[i*length:(i+1)*length]))
+        final_list.append(",".join(id_list[i * length:(i + 1) * length]))
     return final_list
+
+
+def _execute_and_retry(request, wait_min=30):
+    """
+    Execute built HTTP request, if daily rate-limit exceeded, wait and retry same request.
+
+    :param request: HTTP request to `execute`.
+    :param wait_min: number of minutes to wait for executing request
+    :return:
+    """
+    while True:
+        try:
+            return request.execute()
+        except HttpError as e:
+            reason = _get_http_error_reason(e)
+
+            if reason in ['dailyLimitExceeded', 'quotaExceeded']:
+                print(f'Daily limit exceeded, sleeping for {wait_min} mins...')
+                time.sleep(wait_min * 60)
+            elif reason == 'commentsDisabled':
+                print('Comments disabled for video.')
+                raise e
+            else:
+                print('Unknown failure!')
+                raise e
+
+
+def _get_http_error_reason(e: googleapiclient.errors.HttpError):
+    try:
+        return json.loads(e.content.decode('utf-8'))['error']['errors'][0]['reason']
+    except KeyError:
+        return "Can't parse error reason from HTTP response!"
 
 
 if __name__ == "__main__":
