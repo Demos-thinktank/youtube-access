@@ -1,7 +1,7 @@
 # youtube-access
 - A tool to access video descriptions, comments etc from Youtube's Data API (see https://developers.google.com/youtube/v3)
 
-This is still in development; at present it will allow you to search YouTube for videos matching a string, collect details pertaining to those videos and comments left under them, and write the results to .csv. The file 'example.py' shows how to do this with the search term "teach yourself to"
+This tool will allow you to search YouTube for videos matching a string, collect details pertaining to those videos and comments left under them, and write the results to .csv. The file 'example.py' shows how to do this with the search term "teach yourself to"
 
 SETUP: 
 To use this script you will need to create a project with access to the YouTube Data API v3. To do so:
